@@ -15,7 +15,7 @@ import google.generativeai as genai
 # =============================================
 # CONFIG
 # =============================================
-# MODEL_PATH = f"hoaian12/bge-m3-legal-vn"
+MODEL_PATH = f"hoaian12/bge-m3-legal-vn"
 FAISS_INDEX = f"step6_faiss_final/index.faiss"
 FAISS_META  = f"step6_faiss_final/chunks_meta.pkl"
 GCP_PROJECT  = "project-9fc99aa7-4b1f-4118-9ee"
