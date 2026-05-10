@@ -1,0 +1,7 @@
+streamlit
+sentence-transformers
+faiss-cpu
+google-cloud-aiplatform
+vertexai
+huggingface_hub
+numpy
