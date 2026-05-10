@@ -38,7 +38,7 @@ def load_resources():
     # vertexai.init(project=GCP_PROJECT, location=GCP_LOCATION) # mơi chỉnh cho deploy
     
     # gemini = GenerativeModel("gemini-2.5-flash")
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    genai.configure(api_key=st.secrets["AIzaSyCqMqV9L_TLJTsxlU3YWPnfMcFV8OVv8-s"])
     gemini = genai.GenerativeModel("gemini-2.5-flash")
     return model, index, meta, gemini
 
