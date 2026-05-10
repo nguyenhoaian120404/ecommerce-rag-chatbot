@@ -6,3 +6,4 @@ vertexai
 huggingface_hub
 numpy
 google-generativeai
+torchvision
