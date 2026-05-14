@@ -1,6 +1,6 @@
 """
 RAG Chatbot — Pháp luật TMĐT & Quy định Shopee / TikTok Shop
-Streamlit app | BGE-M3 Fine-tuned | FAISS | OpenAI GPT
+Streamlit app | BGE-M3 Fine-tuned | FAISS | GEMINI
 """
 
 import os
