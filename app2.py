@@ -494,7 +494,7 @@ if query:
         first_token_time = None
         t2 = time.time()
 
-        for token in generate_answer(query, context, client):
+        for token in generate_answer(query, context, gemini):
             if first_token_time is None:
                 first_token_time = time.time()
                 ttfb = (first_token_time - t2) * 1000
