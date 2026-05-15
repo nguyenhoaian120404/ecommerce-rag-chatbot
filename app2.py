@@ -253,6 +253,20 @@ html, body, [class*="css"] { font-family: 'Lexend', sans-serif; }
 .badge-legal  { background: rgba(99,102,241,0.2); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
 .badge-shopee { background: rgba(238,77,45,0.2);  color: #fca5a5; border: 1px solid rgba(238,77,45,0.3); }
 .badge-tiktok { background: rgba(20,20,20,0.5);   color: #94a3b8; border: 1px solid rgba(255,255,255,0.15); }
+.src-body {
+    margin-top: 8px; padding: 12px 14px;
+    background: #f1f5f9;
+    border-left: 3px solid #6366f1;
+    border-radius: 6px;
+    font-size: 0.82rem; line-height: 1.6;
+    color: #1e293b;
+    max-height: 360px; overflow-y: auto;
+}
+.src-body p { margin: 0.4em 0; }
+.src-body h4 { color: #374151; margin: 0.6em 0 0.3em; font-weight: 600; }
+.src-body ul, .src-body ol { margin: 0.3em 0 0.3em 1.2em; }
+.src-body li { margin: 0.2em 0; }
+.src-body strong { color: #111827; }
 
 .src-row { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .src-path { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
@@ -359,6 +373,17 @@ for msg in st.session_state.messages:
                         f'</div>',
                         unsafe_allow_html=True
                     )
+                    # THÊM NGAY SAU ĐÓ:
+                    text = src.get("text", "").strip()
+                    if text:
+                        html_body = md.markdown(
+                            text,
+                            extensions=["extra", "sane_lists", "nl2br"],
+                        )
+                        st.markdown(
+                            f'<div class="src-body">{html_body}</div>',
+                            unsafe_allow_html=True,
+                        )
 
 # ── Input form — không auto-submit khi gõ ──
 with st.form("chat_form", clear_on_submit=True):
