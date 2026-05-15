@@ -205,7 +205,7 @@ Câu hỏi: {query}
 Trả lời:"""
     resp = gemini.generate_content(
         prompt,
-        generation_config={"temperature": 0.1, "max_output_tokens": 8192}
+        generation_config={"temperature": 0.1, "max_output_tokens": 8192,stream=True,}
     )
     return resp.text
 
