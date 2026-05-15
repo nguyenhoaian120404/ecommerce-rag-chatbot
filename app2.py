@@ -4,6 +4,7 @@ Streamlit app | BGE-M3 Fine-tuned | FAISS | Gemini Flash
 """
 
 import streamlit as st
+import markdown as md
 import pickle
 import numpy as np
 import faiss
