@@ -487,7 +487,7 @@ if query:
         # ---- 2) GỌI OPENAI (chờ token đầu tiên) ----
         with status_box:
             st.write(f"🧠 **Bước 2/3:** Gọi AI Gemini 2.5 Flash... (chờ token đầu tiên)")
-        log.info(f"→ Calling OpenAI {OPENAI_MODEL}...")
+        log.info(f"→ Calling GEMINI 2.5 Flash...")
 
         placeholder = st.empty()
         answer_parts = []
