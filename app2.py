@@ -2,7 +2,7 @@
 RAG Chatbot — Pháp luật TMĐT & Quy định Shopee / TikTok Shop
 Streamlit app | BGE-M3 Fine-tuned | FAISS | Gemini Flash
 """
-
+import logging
 import streamlit as st
 import markdown as md
 import pickle
