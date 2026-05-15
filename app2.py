@@ -206,12 +206,22 @@ def generate_answer(query, context, gemini):
 Câu hỏi: {query}
 
 Trả lời:"""
-    resp = gemini.generate_content(
-        prompt,
-        generation_config={"temperature": 0.1, "max_output_tokens": 8192},
-        stream=True,
-    )
-    return resp.text
+    try:
+        response = gemini.generate_content(
+            prompt,
+            generation_config={"temperature": 0.1, "max_output_tokens": 8192},
+            stream=True,
+        )
+        for chunk in response:
+            # Dùng try/except cho từng chunk để tránh lỗi iteration
+            try:
+                if chunk.text:
+                    yield chunk.text
+            except Exception:
+                continue
+                
+    except Exception as e:
+        yield f"❌ Lỗi generate: {e}"
 
 
 # =============================================
