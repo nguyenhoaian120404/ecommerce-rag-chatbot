@@ -12,7 +12,17 @@ from sentence_transformers import SentenceTransformer
 import vertexai
 from vertexai.generative_models import GenerativeModel
 import google.generativeai as genai
-
+# =============================================
+# LOGGING — in ra terminal nơi chạy `streamlit run`
+# =============================================
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%H:%M:%S",
+    stream=sys.stdout,
+    force=True,
+)
+log = logging.getLogger("rag")
 # =============================================
 # CONFIG
 # =============================================
@@ -386,39 +396,135 @@ for msg in st.session_state.messages:
                             unsafe_allow_html=True,
                         )
 
+# # ── Input form — không auto-submit khi gõ ──
+# with st.form("chat_form", clear_on_submit=True):
+#     col1, col2 = st.columns([6, 1])
+#     with col1:
+#         user_input = st.text_input(
+#             "q",
+#             value=st.session_state.pending_query,
+#             placeholder="Nhập câu hỏi và nhấn Enter hoặc Gửi...",
+#             label_visibility="collapsed",
+#         )
+#     with col2:
+#         submitted = st.form_submit_button("Gửi ➤", use_container_width=True)
+
+# if st.session_state.pending_query:
+#     st.session_state.pending_query = ""
+
+# # Xử lý
+# if submitted and user_input.strip():
+#     query = user_input.strip()
+#     st.session_state.messages.append({"role": "user", "content": query})
+
+#     with st.spinner("🔍 Đang tìm kiếm và tổng hợp..."):
+#         try:
+#             chunks  = retrieve(query, model, index, meta, top_k=top_k)
+#             context = format_context(chunks, max_per_chunk=max_chars)
+#             answer  = generate_answer(query, context, gemini)
+#             st.session_state.messages.append({
+#                 "role": "assistant", "content": answer, "sources": chunks
+#             })
+#         except Exception as e:
+#             st.session_state.messages.append({
+#                 "role": "assistant", "content": f"❌ Lỗi: {e}", "sources": []
+#             })
+#     st.rerun()
+# ── Lấy query đang chờ từ suggestion (nếu có), pop ra luôn để không bị reset/ghi đè ──
+pending = st.session_state.pop("pending_query", "") or ""
+
 # ── Input form — không auto-submit khi gõ ──
 with st.form("chat_form", clear_on_submit=True):
     col1, col2 = st.columns([6, 1])
     with col1:
         user_input = st.text_input(
             "q",
-            value=st.session_state.pending_query,
             placeholder="Nhập câu hỏi và nhấn Enter hoặc Gửi...",
             label_visibility="collapsed",
         )
     with col2:
         submitted = st.form_submit_button("Gửi ➤", use_container_width=True)
 
-if st.session_state.pending_query:
-    st.session_state.pending_query = ""
+# Ưu tiên: suggestion click → auto-submit luôn. Nếu không, dùng input người dùng gõ.
+query = None
+if pending.strip():
+    query = pending.strip()
+elif submitted and user_input.strip():
+    query = user_input.strip()
 
 # Xử lý
-if submitted and user_input.strip():
-    query = user_input.strip()
+if query:
     st.session_state.messages.append({"role": "user", "content": query})
 
-    with st.spinner("🔍 Đang tìm kiếm và tổng hợp..."):
-        try:
-            chunks  = retrieve(query, model, index, meta, top_k=top_k)
-            context = format_context(chunks, max_per_chunk=max_chars)
-            answer  = generate_answer(query, context, gemini)
-            st.session_state.messages.append({
-                "role": "assistant", "content": answer, "sources": chunks
-            })
-        except Exception as e:
-            st.session_state.messages.append({
-                "role": "assistant", "content": f"❌ Lỗi: {e}", "sources": []
-            })
+    # Render lại ngay câu hỏi của user trước khi stream
+    st.markdown(
+        f'<div class="chat-user">🧑 <b>Bạn:</b> {query}</div>',
+        unsafe_allow_html=True
+    )
+
+    # Status panel — luôn hiển thị câu đang xử lý + bước hiện tại
+    status_box = st.status(f"🤔 Đang xử lý: **{query}**", expanded=True)
+    t0 = time.time()
+    log.info(f"========== NEW QUERY ==========")
+    log.info(f"Q: {query}")
+
+    try:
+        # ---- 1) RETRIEVAL ----
+        with status_box:
+            st.write("🔍 **Bước 1/3:** Mã hoá câu hỏi + tìm trong FAISS...")
+        t1 = time.time()
+        chunks  = retrieve(query, model, index, meta, top_k=top_k)
+        context = format_context(chunks, max_per_chunk=max_chars)
+        retr_ms = (time.time() - t1) * 1000
+        log.info(f"⏱  Retrieval: {retr_ms:.0f}ms | {len(chunks)} chunks | context={len(context)} chars")
+        with status_box:
+            st.write(f"✅ Lấy {len(chunks)} đoạn ({retr_ms:.0f}ms, {len(context)} ký tự context)")
+
+        # ---- 2) GỌI OPENAI (chờ token đầu tiên) ----
+        with status_box:
+            st.write(f"🧠 **Bước 2/3:** Gọi AI Gemini 2.5 Flash... (chờ token đầu tiên)")
+        log.info(f"→ Calling OpenAI {OPENAI_MODEL}...")
+
+        placeholder = st.empty()
+        answer_parts = []
+        first_token_time = None
+        t2 = time.time()
+
+        for token in generate_answer_stream(query, context, client):
+            if first_token_time is None:
+                first_token_time = time.time()
+                ttfb = (first_token_time - t2) * 1000
+                log.info(f"⏱  Time-to-first-token: {ttfb:.0f}ms")
+                with status_box:
+                    st.write(f"✍️  **Bước 3/3:** Đang sinh câu trả lời... (TTFT {ttfb:.0f}ms)")
+            answer_parts.append(token)
+            placeholder.markdown(
+                f'<div class="chat-bot">🤖 <b>Trợ lý:</b><br>{"".join(answer_parts)}▌</div>',
+                unsafe_allow_html=True
+            )
+
+        answer = "".join(answer_parts)
+        gen_ms = (time.time() - t2) * 1000
+        total_ms = (time.time() - t0) * 1000
+        log.info(f"⏱  Generation: {gen_ms:.0f}ms | answer={len(answer)} chars")
+        log.info(f"⏱  TOTAL: {total_ms:.0f}ms")
+
+        placeholder.empty()
+        status_box.update(
+            label=f"✅ Hoàn tất ({total_ms/1000:.1f}s) — {query}",
+            state="complete",
+            expanded=False,
+        )
+
+        st.session_state.messages.append({
+            "role": "assistant", "content": answer, "sources": chunks
+        })
+    except Exception as e:
+        log.exception(f"❌ Error: {e}")
+        status_box.update(label=f"❌ Lỗi: {e}", state="error", expanded=True)
+        st.session_state.messages.append({
+            "role": "assistant", "content": f"❌ Lỗi: {e}", "sources": []
+        })
     st.rerun()
 
 # Clear
